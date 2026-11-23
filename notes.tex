@@ -70,13 +70,13 @@ If $x'_j \in \bbr^d$ is object $j$ plus info it received, then
 
 We can use an MLP to implement $f$ or something similar. \\
 
-A single message-passing round is limited to pairwise interactions (our model is simplistically pairwise with only $f(x_i,x_j)$; interactions of $>2$ objects is limited to additive ``interaction''). So just run multiple rounds of message-passing to get over this. \\
+A single message-passing round is limited to pairwise interactions (our model is simplistically pairwise with only $f(x_i,x_j)$; interactions of $>2$ objects is limited to additive ``interaction''). So just run multiple rounds of message-passing to get over this, where round $r$ learns its own $f^{(r)}$. \\
 
 Final algo:
 \1 Let $x_1,...,x_T \in \bbr^d$ be our initial object reprs.
-\1 For each $\mathrm{round}=1 \rightarrow N$:
+\1 For each round $r=1 \rightarrow N$:
 \2 For each $j=1 \rightarrow T$:
-\3 $x'_j := x_j + \displaystyle \sum_{i=1}^T f(x_i,x_j)$
+\3 $x'_j := x_j + \displaystyle \sum_{i=1}^T f^{(r)}(x_i,x_j)$
 \2 For each $j=1 \rightarrow T$:
 \3 $x_j := x'_j$
 \0
@@ -92,7 +92,7 @@ Implementation: we split the rounds into two steps.
 \1 \textbf{Step 2}: Message-passing.
 \2 In standard transformers, each object $i$ broadcasts \textit{one} message $v_i$ and object $j$ scores how much it wants $v_i$.
 \3 Broadcasted message usually computed as $v_i = x_i W_V$, shape of $W_V$ is $[d,d]$.
-\3 Score usually computed $s(x_i,x_j) = \operatorname{softmax}([k_i \cdot q_{1,\,...,\,T}])[j]$ where $k_i = x_i W_K$ and $q_j = x_j W_Q$ ($W_K,W_Q$ shape $[d,d_k]$). ($q_i \cdot k_j$ learns to give ``relevance scores'', and softmax ensures it's easy for $j$ to discard info from sources it doesn't want; one logit's value increasing can sharply decrease all others.)
+\3 Score usually computed $s(x_i,x_j) = \operatorname{softmax}([q_j \cdot k_{1,\,...,\,T}])[i]$ where $k_i = x_i W_K$ and $q_j = x_j W_Q$ ($W_K,W_Q$ shape $[d,d_k]$). ($q_j \cdot k_i$ learns to give ``relevance scores'', and softmax ensures it's easy for $j$ to discard info from sources it doesn't want; one logit's value increasing can sharply decrease all others.)
 \2 So we use $f(x_i,x_j) = s(x_i,x_j) v_i$: a dot-product and then scaling $v_i$ with it, which is much lower const factor than prev MLP def of $f$.
 \2 We call this modified message-passing \textbf{attention}. This is $O(T^2)$ with low constant factor (dot-product and vector scaling, all within $O(d)$ flops).
 \\\0
