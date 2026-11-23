@@ -55,5 +55,38 @@
 
 \section{Problem}
 
+You have $T$ objects $1,...,T$ with numerical representations $x_1,...,x_T \in \bbr^d$. You want to compute something about these objects based on complex interactions between the objects.
+
+\section{Message-passing}
+
+The obvious idea is learning a function $f(x_i,x_j)$: ``what info should $x_i$ pass to $x_j$?''. It's of type $f : (\bbr^d,\bbr^d) \mapsto \bbr^d$. \\
+
+If $x'_j \in \bbr^d$ is object $j$ plus info it received, then
+\[ x'_j = x_j + \sum_{i=1}^T f(x_i,x_j) \]
+
+We can use an MLP to implement $f$ or something similar. \\
+
+Empirically, depth is more parameter-efficient (ex. feature reuse), so run multiple rounds of message-passing with $f$'s MLP smaller (as opposed to one round of message-passing with $f$'s MLP huge). \\
+
+Final algo:
+\1 Let $x_1,...,x_T \in \bbr^d$ be our initial object reprs.
+\1 For each $\mathrm{round}=1 \rightarrow N$ (there's $N$ message-passing rounds):
+\2 For each $j=1 \rightarrow T$:
+\3 $x'_j := x_j + \displaystyle \sum_{i=1}^T f(x_i,x_j)$
+\2 For each $j=1 \rightarrow T$:
+\3 $x_j := x'_j$ (prep for next round: update every $x_j$ with info it received)
+\0
+
+\section{Optimizing message-passing (the transformer)}
+
+Our message-passing algo is $O(T^2)$ MLP calls; inefficient. \\
+
+Hypothesis: we can do complex feature-engineering outside of the message-passing loop (in less than $O(T^2)$ time), and our $O(T^2)$ message-passing loop can become cheap. \\
+
+Implementation: we split the rounds into two steps.
+\1 \textbf{Step 1}: Complex feature-engineering. For each $x_j$, do $x_j := x_j + \text{MLP}(x_j)$. (This is $O(T)$ with high const factor.)
+\1 \textbf{Step 2}: Message-passing. For each $x_j$, do $x'_j := x_j + \displaystyle \sum_{i=1}^T f(x_i,x_j)$.
+\\\0
+
 \end{outline}
 \end{document}
