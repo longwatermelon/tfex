@@ -70,11 +70,11 @@ A single message-passing round is limited to pairwise interactions (our model is
 
 Final algo:
 \1 Let $x_1,...,x_T \in \bbr^d$ be our initial object reprs.
-\1 For each $\mathrm{round}=1 \rightarrow N$ (there's $N$ message-passing rounds):
+\1 For each $\mathrm{round}=1 \rightarrow N$ (elaboration: there's $N$ message-passing rounds):
 \2 For each $j=1 \rightarrow T$:
 \3 $x'_j := x_j + \displaystyle \sum_{i=1}^T f(x_i,x_j)$
 \2 For each $j=1 \rightarrow T$:
-\3 $x_j := x'_j$ (prep for next round: update every $x_j$ with info it received)
+\3 $x_j := x'_j$ (elaboration: this is prep for next round, update every $x_j$ with info it received)
 \0
 
 \section{The transformer (aka: optimized message passing)}
@@ -90,7 +90,7 @@ Implementation: we split the rounds into two steps.
 \3 Broadcasted message usually computed as $v_i = x_i W_V$, shape of $W_V$ is $[d,d]$.
 \3 Score usually computed $s(x_i,x_j) = k_i \cdot q_j$ where $k_i = x_i W_K$ and $q_j = x_j W_Q$ ($W_K,W_Q$ shape $[d,d_k]$).
 \2 So we use $f(x_i,x_j) = s(x_i,x_j) v_i$: a dot-product and then scaling $v_i$ with it, which is much lower const factor than prev MLP def of $f$.
-\2 We call this modified message-passing \textbf{attention}.
+\2 We call this modified message-passing \textbf{attention}. This is $O(T^2)$ with low constant factor (dot-product and vector scaling, all within $O(d)$ flops).
 \\\0
 
 Multi-head attention is a compromise between \textbf{single-message broadcast} ($x_i$ broadcasts one message $v_i$) and \textbf{$T$-messages broadcast} ($x_i$ broadcasts $T$ messages $\text{MLP}([x_i,x_1])$, ..., $\text{MLP}([x_i,x_T])$). Instead, use a fixed number of $h$ heads (some fixed small $h \ll T_{max}$), where each head does a single-message broadcast.
