@@ -59,7 +59,7 @@ You have $T$ objects $1,...,T$ with numerical representations $x_1,...,x_T \in \
 
 \section{Message passing}
 
-The obvious idea is learning a function $f(x_i,x_j)$: ``what info should $x_i$ pass to $x_j$?''. It's of type $f : (\bbr^d,\bbr^d) \mapsto \bbr^d$. \\
+The obvious idea is learning a function $f(x_i,x_j)$: ``what info should $x_i$ pass to $x_j$?''. It's of type $f : (\bbr^d,\bbr^d) \rightarrow \bbr^d$. \\
 
 If $x'_j \in \bbr^d$ is object $j$ plus info it received, then
 \[ x'_j = x_j + \sum_{i=1}^T f(x_i,x_j) \]
