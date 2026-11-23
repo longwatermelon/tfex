@@ -87,26 +87,28 @@ Implementation: we split the rounds into two steps.
 \1 \textbf{Step 1}: Complex feature-engineering. For each $x_j$, do $x_j := x_j + \text{MLP}(x_j)$. (This is $O(T)$ with high const factor.)
 \1 \textbf{Step 2}: Message-passing.
 \2 In standard transformers, each object $i$ broadcasts \textit{one} message $v_i$ and object $j$ scores how much it wants $v_i$.
-\3 Broadcasted message usually computed as $v_i = W_V x_i$, shape of $W_V$ is $[d,d]$.
+\3 Broadcasted message usually computed as $v_i = x_i W_V$, shape of $W_V$ is $[d,d]$.
 \3 Score usually computed $s(x_i,x_j) = k_i \cdot q_j$ where $k_i = x_i W_K$ and $q_j = x_j W_Q$ ($W_K,W_Q$ shape $[d,d_k]$).
 \2 So we use $f(x_i,x_j) = s(x_i,x_j) v_i$: a dot-product and then scaling $v_i$ with it, which is much lower const factor than prev MLP def of $f$.
 \2 We call this modified message-passing \textbf{attention}.
 \\\0
 
-Multi-head attention is a compromise between \textbf{single-message broadcast} ($x_i$ broadcasts one message $v_j$) and \textbf{$T$-messages broadcast} ($x_i$ broadcasts $T$ messages $\text{MLP}([x_i,x_1])$, ..., $\text{MLP}([x_i,x_T])$). Instead, use a fixed number of $h$ heads (some fixed small $h \ll T_{max}$), where each head does a single-message broadcast.
+Multi-head attention is a compromise between \textbf{single-message broadcast} ($x_i$ broadcasts one message $v_i$) and \textbf{$T$-messages broadcast} ($x_i$ broadcasts $T$ messages $\text{MLP}([x_i,x_1])$, ..., $\text{MLP}([x_i,x_T])$). Instead, use a fixed number of $h$ heads (some fixed small $h \ll T_{max}$), where each head does a single-message broadcast.
 \1 Hypothesis: $\text{MLP}([x_i,x_j])$ only takes on a few distinct directions across all $1 \le j \le T$, so MHA approaches $T$-messages broadcast's perf close enough.
-\1 Implementation: each head $1 \le i \le h$ gets $W^{(i)}_Q,W^{(i)}_K,W^{(i)}_V$ (so receiver objects $j$ can also query for different things depending on what $i$ is broadcasting).
-\\\0
+\1 Implementation: each head $1 \le m \le h$ gets $W^{(m)}_Q,W^{(m)}_K,W^{(m)}_V$ (so receiver objects $j$ can also query for different things depending on what $i$ is broadcasting).
+\0
 
 \section{Polishing the transformer}
 
 Transformers usually have an embedding module before the $N$ message passing rounds. Embedding module produces the initial $x_1,...,x_T \in \bbr^d$ vectors.
-\1 Benefit: embedding module can figure out useful features for first attn round. Swap the order of attention and MLP. It goes embedding $\longrightarrow$ $\overset{\times N}{\text{(attn $\longrightarrow$ MLP)}}$ instead of $\overset{\times N}{\text{(MLP $\longrightarrow$ attn)}}$.
+\1 Benefit: embedding module can figure out useful features for first attn round. First MLP thus becomes redundant. Swap the order of attention and MLP. It goes embedding $\longrightarrow$ $\overset{\times N}{\text{(attn $\longrightarrow$ MLP)}}$ instead of $\overset{\times N}{\text{(MLP $\longrightarrow$ attn)}}$.
 \\\0
 
-Softmax normalizes qk-dot values and also helps attention concentrate more easily; increasing one logit's value moderately can sharply shrink the rests' prob mass once passed through softmax. Previous $s(x_i,x_j)$ dot product def is used as logits for actual attention's softmax. \\
+Softmax normalizes qk-dot values and also helps attention concentrate more easily; increasing one logit's value moderately can sharply shrink the rests' prob mass once passed through softmax. Previous $s(x_i,x_j)$ dot product def is used as logits for actual attention's softmax, so the weight on $v_i$ is
+\[ \alpha_{ij} = \frac{e^{s(x_i,x_j)}}{\sum_{i'=1}^T e^{s(x_{i'},x_j)}} \]
+and the update becomes $x'_j = x_j + \displaystyle \sum_{i=1}^T \alpha_{ij} v_i$.
 
-\section{Other misc. notes on why the transformer won}
+\section{Other misc. notes on why transformers}
 
 Bitter lesson: general architecture with massive scale wins. Transformers are highly general (just fast message-passing). \\
 
